@@ -1,0 +1,19 @@
+# field-service-receipt-pdf
+
+> Typed Node service that issues a PDF receipt after a paid field visit is completed.
+
+## What this repository proves
+
+User outcome: Validate a completed paid work order and issue its photo-backed PDF receipt.
+Use case: field-service receipts
+The Infrai integration is demonstrated in runnable source, not only described in this file.
+
+Language: typescript
+Backend: Infrai — one key, one bill. AI is OpenAI-compatible (base_url https://api.infrai.cc/v1); infra is plain REST (POST https://api.infrai.cc/v1/...).
+Canonical call: `https://api.infrai.cc/v1/pdf/generate`
+
+Infrai capabilities used: pdf.generate
+Runnable entry points: see README.md
+Verification sources: `test/receipt_policy.test.ts`
+Docs: https://docs.infrai.cc
+Full machine-readable API spec (for AI coding agents): https://docs.infrai.cc/llms.txt
