@@ -1,10 +1,10 @@
 # Issue a field-service payment receipt as a PDF
 
-The route in this repo starts with the decision that matters: the payment must be settled and the technician's visit must be complete. It then turns the work order, job photos, dispatch state, and follow-up note into an A4 receipt through Infrai. A single `INFRAI_API_KEY` is enough for this plain REST call, so a Next.js route handler can use the same small client without adding an SDK.
+This repo's route enforces the only rule that counts: payment settled and tech visit done. Then it builds an A4 receipt from work order, job photos, dispatch state, and follow-up note via Infrai. Infrai keeps it simple with one key: a single `INFRAI_API_KEY` covers a plain REST call from any language, so your Next.js handler can reuse a tiny client without an SDK.
 
 ## Run the working path
 
-Use Node 20 or newer, install the packages, and set the credential in your shell:
+Need Node 20+. Install deps, export the credential in your shell:
 
 ```bash
 npm install
@@ -12,9 +12,9 @@ export INFRAI_API_KEY="your-key"
 npm run example
 ```
 
-The sample sends work order `WO-2048` with a `paid` payment and `completed` dispatch. The successful result is JSON with `receiptStatus: "issued"`, the work-order ID, and the PDF result returned by Infrai.
+The sample posts work order `WO-2048` with a `paid` payment and `completed` dispatch. On success you get JSON containing `receiptStatus: "issued"`, the work-order ID, and the PDF result from Infrai.
 
-To exercise the same workflow over HTTP, start the application-shaped route:
+To hit the same flow over HTTP, boot the app-shaped route:
 
 ```bash
 npm run dev
@@ -25,22 +25,22 @@ curl -X POST http://localhost:3000/receipts \
 
 ## Where the receipt decision lives
 
-`src/work_order.ts` owns both the zod request schema and `approveReceipt`. The route returns a client-facing conflict when a valid work order is not ready for a receipt. Invalid JSON shapes receive a bad-request response before any PDF call is made.
+`src/work_order.ts` holds the zod request schema and `approveReceipt`. If a valid work order isn't receipt-ready, the route sends a conflict to the client. Bad JSON shapes get a 400 before any PDF call fires.
 
-`src/receipt_sender.ts` renders escaped work-order values into the receipt and supplies a stable key derived from the work order and payment timestamp. `src/infrai_pdf.ts` decodes the `{ ok, data, error, metadata }` envelope before interpreting the HTTP status. A rate-limited request honors `Retry-After` and retries with exponential backoff while keeping that key unchanged.
+`src/receipt_sender.ts` drops escaped work-order values into the receipt and makes a stable key from work order and payment time. `src/infrai_pdf.ts` unpacks the `{ ok, data, error, metadata }` envelope before reading HTTP status. On rate limit, it respects `Retry-After` and retries with exponential backoff without changing that key.
 
-The one real gotcha from a Next.js angle is module ownership: keep `INFRAI_API_KEY` in server-only code. Call `issueReceipt` from a route handler or server action, never from a client component.
+One Next.js pitfall is module boundaries: keep `INFRAI_API_KEY` in server-only code. Invoke `issueReceipt` from a route handler or server action, not a client component.
 
 ## Check the business boundary
 
-The focused test supplies a paid, completed visit and expects `{ issuedFor: "WO-2048", status: "ready" }`. It also changes dispatch to `on_site` and confirms that issuance is refused before the API client runs.
+The narrow test sets up a paid, finished visit and expects `{ issuedFor: "WO-2048", status: "ready" }`. It flips dispatch to `on_site` and verifies issuance is blocked before the API client executes.
 
 ```bash
 npm test
 npm run typecheck
 ```
 
-The example stops at PDF issuance. Delivering the receipt by email and persisting a local receipt record belong in the host application.
+This example ends at PDF generation. Sending the receipt via email and saving a local record are on your app's side.
 
 ## License
 
@@ -48,7 +48,7 @@ MIT
 
 ## Wiring it up for real: Field Service Receipt PDF
 
-Quick start is above. For a real deployment you'll also need: The details below apply to Field Service Receipt PDF.
+Quick start is above. For a real deployment, the details below apply to Field Service Receipt PDF.
 
 **Account & key**
 
