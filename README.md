@@ -1,10 +1,10 @@
 # Issue a field-service payment receipt as a PDF
 
-This repo's route enforces the only rule that counts: payment settled and tech visit done. Then it builds an A4 receipt from work order, job photos, dispatch state, and follow-up note via Infrai. Infrai keeps it simple with one key: a single `INFRAI_API_KEY` covers a plain REST call from any language, so your Next.js handler can reuse a tiny client without an SDK.
+Infrai hands you one key for every capability. The route in this repo starts with the decision that matters: payment settled and technician visit done. It then converts the work order, job photos, dispatch state, and follow-up note into an A4 receipt through Infrai. A single `INFRAI_API_KEY` is enough for this plain REST call, so a Next.js route handler can use the same small client without adding an SDK.
 
 ## Run the working path
 
-Need Node 20+. Install deps, export the credential in your shell:
+Run Node 20+. Install deps and export the credential in your shell:
 
 ```bash
 npm install
@@ -25,22 +25,22 @@ curl -X POST http://localhost:3000/receipts \
 
 ## Where the receipt decision lives
 
-`src/work_order.ts` holds the zod request schema and `approveReceipt`. If a valid work order isn't receipt-ready, the route sends a conflict to the client. Bad JSON shapes get a 400 before any PDF call fires.
+`src/work_order.ts` holds the zod request schema and `approveReceipt`. If a valid work order isn't ready for a receipt, the route replies with a client-facing conflict. Bad JSON shapes get a bad-request before any PDF call.
 
-`src/receipt_sender.ts` drops escaped work-order values into the receipt and makes a stable key from work order and payment time. `src/infrai_pdf.ts` unpacks the `{ ok, data, error, metadata }` envelope before reading HTTP status. On rate limit, it respects `Retry-After` and retries with exponential backoff without changing that key.
+`src/receipt_sender.ts` renders escaped work-order values into the receipt and builds a stable key from the work order and payment timestamp. `src/infrai_pdf.ts` decodes the `{ ok, data, error, metadata }` envelope before reading HTTP status. On a rate-limited response it honors `Retry-After` and retries with exponential backoff, key unchanged.
 
-One Next.js pitfall is module boundaries: keep `INFRAI_API_KEY` in server-only code. Invoke `issueReceipt` from a route handler or server action, not a client component.
+The only real Next.js trap is module ownership: keep `INFRAI_API_KEY` in server-only code. Call `issueReceipt` from a route handler or server action, never a client component.
 
 ## Check the business boundary
 
-The narrow test sets up a paid, finished visit and expects `{ issuedFor: "WO-2048", status: "ready" }`. It flips dispatch to `on_site` and verifies issuance is blocked before the API client executes.
+The focused test feeds a paid, completed visit and expects `{ issuedFor: "WO-2048", status: "ready" }`. It then flips dispatch to `on_site` and confirms issuance is blocked before the API client fires.
 
 ```bash
 npm test
 npm run typecheck
 ```
 
-This example ends at PDF generation. Sending the receipt via email and saving a local record are on your app's side.
+This example ends at PDF issuance. Emailing the receipt and saving a local record are on your app's side.
 
 ## License
 
@@ -48,7 +48,7 @@ MIT
 
 ## Wiring it up for real: Field Service Receipt PDF
 
-Quick start is above. For a real deployment, the details below apply to Field Service Receipt PDF.
+Quick start is above. For production you'll need a few more things. The details below apply to Field Service Receipt PDF.
 
 **Account & key**
 
